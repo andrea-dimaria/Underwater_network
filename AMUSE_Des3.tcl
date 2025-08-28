@@ -67,9 +67,8 @@ set opt(start_clock) [clock seconds]
 set opt(nn)                 2.0 ; # Number of Nodes
 set opt(starttime)          1
 set opt(stoptime)           6002
-#interrupttime 120 instead of 60
-# change this for shorter simulation
-set opt(interrupttime)      60 
+#interrupttime 1200 instead of 60
+set opt(interrupttime)      120 
 set opt(txduration)         [expr $opt(stoptime) - $opt(starttime)]
 set opt(seedcbr)            0
 set opt(memory_slots)       10000
@@ -463,6 +462,8 @@ puts "---------------------------------------------------------------------"
     puts "Received Packets         : $sum_cbr_rcv_pkts"
     puts "Packet Error Rate        : [expr ((1 - double($sum_cbr_rcv_pkts)/ $sum_cbr_sent_pkts) * 100)]"
 
+    set per_temp [expr ((1 - double($sum_cbr_rcv_pkts)/ $sum_cbr_sent_pkts) * 100)]
+
     ##########################################
     # SYNC WITH AMUSE - MODIFY THE FILE PATH #
     ##########################################
@@ -482,24 +483,25 @@ puts "---------------------------------------------------------------------"
     set rcv $sum_cbr_rcv_pkts
     puts "rcv_temp: $rcv_temp"
 
-     #CALCOLO ENERGIA CONSUMATA
+     # AGGIUNGERE CALCOLO ENERGIA CONSUMATA
     set energy_consumed 0.0
     for {set i 0} {$i < $opt(nn)} {incr i}  {
         set energy_consumed_node [$phy($i) getConsumedEnergyTx]
         set energy_consumed [expr $energy_consumed + $energy_consumed_node]
     }
-    puts "Energy Consumed (J): $energy_consumed"
-    set MyMinTxSPL_dB_ 10
-    set normalized_energy [expr (10*log10($energy_consumed)-$MyMinTxSPL_dB_)/($txpower_db-$MyMinTxSPL_dB_)]
+    puts "Energy Consumed: $energy_consumed"
+    set min_energy 136
+    set max_energy 176
+    set normalized_energy [expr (10*log10($energy_consumed)-$min_energy)/($max_energy-$min_energy)]
     
-    #set new_reward [expr $rcv_temp- ($energy_consumed/($rcv_temp + 0.1))]
-    set new_reward [expr -$rcv_temp - $normalized_energy]
+    set alpha 0.5
+    set new_reward [expr -(($alpha)*$per_temp) -((1-$alpha) * $normalized_energy)]
     puts "New Reward: $new_reward"
     ###########################################
     # WRITING TO AMUSE - MODIFY THE FILE PATH #
     ###########################################
     set writer [open "~/AMUSE/rewards.csv" w+]
-    puts $writer "$step, $new_reward, $snr"
+    puts $writer "$step, $new_reward, $snr, $energy_consumed"
     close $writer
     puts "Wrote to rewards.csv: $step, $rcv_temp"
     after 500
@@ -523,13 +525,24 @@ puts "---------------------------------------------------------------------"
    # set candidate_paths [list "./actions.csv" "./AMUSE/actions.csv" "~/AMUSE/actions.csv"]
     #set data ""
 
-
+   # foreach p $candidate_paths {
+    #    if {[file exists $p]} {
+    #        set fh [open $p r]
+    #        set content [string trim [read $fh]]
+   #         close $fh
+   #         if { $content ne "" } {
+   #             set data $content
+   #             break
+   #         }
+   #     }
+   # }
     set fh [open "~/AMUSE/actions.csv" r]
     set data [string trim [read $fh]]
     close $fh
 
     if {$data == ""} {
         # nothing to do this interrupt
+        #puts "TCL: no actions.csv content found (paths tried: $candidate_paths)"
        puts "TCL: no actions.csv content found"
     } else {
         puts "TCL: raw actions line -> $data"
@@ -537,7 +550,10 @@ puts "---------------------------------------------------------------------"
 
         # trim each part
         set np [llength $parts]
-                
+        #for {set i 0} {$i < $np} {incr i} {
+        #    set parts($i) [string trim [lindex $parts $i]]
+        #}
+        
 
         # default values
         set mod_str ""

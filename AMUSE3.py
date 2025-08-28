@@ -1,4 +1,4 @@
-# amuse2_joint_ucb.py  (sovrascrivi / integra amuse2.py)
+
 import math
 import statistics
 import csv
@@ -6,13 +6,13 @@ import time
 #import matplotlib.pyplot as plt
 #from matplotlib import pyplot as plt
 
-# Configurazione esperimento
-n_max_steps = 100
+# Configurazione
+n_max_steps = 50
 n_max_episodes = 2
 
-# Definizione modulazioni e livelli potenza (modifica secondo il tuo PHY)
-MODS = ["BPSK", "8PSK", "16PSK"]    # esempio: 3 modulazioni (come il tuo codice originale)
-POWERS = [20, 63, 126]               # dBm -- adatta alla tua scala
+# Definizione modulazioni e livelli potenza
+MODS = ["BPSK", "8PSK", "16PSK"]    #
+POWERS = [136, 156, 176]               # dB re μPa @ 1 m 
 
 # Costruzione azioni congiunte (index -> (mod_idx, pow_idx))
 ACTIONS = []
@@ -32,7 +32,7 @@ total_rewards = [0.0] * NUM_ACTIONS
 total_mean_throughput = []
 total_cumulative_reward = []
 
-# Funzione di selezione UCB1 (identica a quella originale ma con NUM_ACTIONS)
+# Funzione di selezione UCB1
 def select_action():
     # se esiste un'azione non esplorata, sceglila
     for a in range(NUM_ACTIONS):
@@ -57,6 +57,7 @@ while n_episode < n_max_episodes:
     throughput_list = []
 
     reward_per_step =[]
+    total_energy = []
 
     while n_step < n_max_steps:
         action = select_action()
@@ -78,6 +79,7 @@ while n_episode < n_max_episodes:
                 row = next(rewards_reader_check)
                 step = int(row[0])
                 reward = float(row[1])
+                energy_consumed = float(row[3])
                 print(f"[INFO] read rewards.csv: step={step}, reward={reward}")
 
             if step == internal_step:
@@ -102,6 +104,7 @@ while n_episode < n_max_episodes:
         # Aggiorno UCB counters
         action_counts[action] += 1
         total_rewards[action] += reward
+        
 
         internal_step += 1
         n_step += 1
@@ -125,11 +128,15 @@ while n_episode < n_max_episodes:
             time.sleep(1)
         #acquisizione dati per plotting
         reward_per_step.append(reward)
+        total_energy.append(energy_consumed)
     # fine episodio
     #plot reward
     with open('reward_per_step.csv',"a",newline='') as reward_file:
         reward_writer = csv.writer(reward_file)
         reward_writer.writerow(reward_per_step)
+    with open('energy_per_step.csv',"a",newline='') as energy_file:
+        energy_writer = csv.writer(energy_file)
+        energy_writer.writerow(total_energy)
     '''
     plt.plot(range(1, n_max_steps), reward_per_step, marker='o')
     plt.title('Reward per Step')
