@@ -67,7 +67,8 @@ set opt(start_clock) [clock seconds]
 set opt(nn)                 2.0 ; # Number of Nodes
 set opt(starttime)          1
 set opt(stoptime)           6002
-#interrupttime 1200 instead of 60
+#interrupttime 120 instead of 60 so that the simulation ends after 50/100 timesteps
+# according to the AMUSE3 script num_max_steps
 set opt(interrupttime)      120 
 set opt(txduration)         [expr $opt(stoptime) - $opt(starttime)]
 set opt(seedcbr)            0

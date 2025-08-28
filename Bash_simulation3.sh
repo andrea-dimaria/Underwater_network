@@ -1,3 +1,4 @@
+#change according to the number of episodes in AMUSE3 script
 for i in {0..1}
     do
 	    sleep 2
