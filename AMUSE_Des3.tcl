@@ -523,24 +523,13 @@ puts "---------------------------------------------------------------------"
    # set candidate_paths [list "./actions.csv" "./AMUSE/actions.csv" "~/AMUSE/actions.csv"]
     #set data ""
 
-   # foreach p $candidate_paths {
-    #    if {[file exists $p]} {
-    #        set fh [open $p r]
-    #        set content [string trim [read $fh]]
-   #         close $fh
-   #         if { $content ne "" } {
-   #             set data $content
-   #             break
-   #         }
-   #     }
-   # }
+
     set fh [open "~/AMUSE/actions.csv" r]
     set data [string trim [read $fh]]
     close $fh
 
     if {$data == ""} {
         # nothing to do this interrupt
-        #puts "TCL: no actions.csv content found (paths tried: $candidate_paths)"
        puts "TCL: no actions.csv content found"
     } else {
         puts "TCL: raw actions line -> $data"
@@ -548,10 +537,7 @@ puts "---------------------------------------------------------------------"
 
         # trim each part
         set np [llength $parts]
-        #for {set i 0} {$i < $np} {incr i} {
-        #    set parts($i) [string trim [lindex $parts $i]]
-        #}
-        
+                
 
         # default values
         set mod_str ""
