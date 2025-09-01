@@ -1,4 +1,4 @@
-for i in {0..1}
+for i in {0..14}
     do
 	    sleep 2
 	    echo 1, 0, 0 > ~/AMUSE/synchronization.csv

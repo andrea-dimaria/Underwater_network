@@ -453,8 +453,10 @@ puts "---------------------------------------------------------------------"
         set sum_ipr_retx       [expr $sum_ipr_retx + $ipr_retx]
     }
 
+    set mean_throughput [expr (double($sum_cbr_throughput)/($opt(nn)))]
+
     puts "Metrics"
-    puts "Mean Throughput          : [expr (double($sum_cbr_throughput)/($opt(nn)))]"
+    puts "Mean Throughput          : $mean_throughput"
     puts "Sent Packets             : $sum_cbr_sent_pkts"
     
     ################
@@ -486,28 +488,23 @@ puts "---------------------------------------------------------------------"
     set rcv $sum_cbr_rcv_pkts
     puts "rcv_temp: $rcv_temp"
 
-     # AGGIUNGERE CALCOLO ENERGIA CONSUMATA
+    #CALCULATE CONSUMED ENERGY
     set sum_energy_consumed 0.0
     for {set i 0} {$i < $opt(nn)} {incr i}  {
         set energy_consumed_node [$phy($i) getConsumedEnergyTx]
         set sum_energy_consumed [expr $sum_energy_consumed + $energy_consumed_node]
     }
-
+    # CALCULATE TOTAL ENERGY CONSUMED MINUS THE PREVIOUS TOTAL ENERGY
     set energy_temp [expr $sum_energy_consumed - $total_energy]
     set total_energy $sum_energy_consumed
     puts "Energy Consumed this step: $energy_temp"
     
-    #puts "Energy Consumed: $sum_energy_consumed"
+    # NORMALIZATION
     set min_energy 136
     set max_energy 176
-   # if {$energy_temp <= 0} {
-   #     set normalized_energy 0.0
-   # } else {
-   #    set normalized_energy [expr (10*log10($energy_temp)-$min_energy)/($max_energy-$min_energy)]
-   # }
-   set normalized_energy [expr ($energy_temp -$min_energy)/($max_energy-$min_energy)]
+    set normalized_energy [expr ($energy_temp -$min_energy)/($max_energy-$min_energy)]
     
-    
+    # CALCULATE THE REWARD
     set alpha 0.5
     set new_reward [expr -(($alpha)*$per_temp) -((1-$alpha) * $normalized_energy)]
     puts "New Reward: $new_reward"
@@ -515,41 +512,16 @@ puts "---------------------------------------------------------------------"
     # WRITING TO AMUSE - MODIFY THE FILE PATH #
     ###########################################
     set writer [open "~/AMUSE/rewards.csv" w+]
-    puts $writer "$step, $new_reward, $snr, $energy_temp"
+    puts $writer "$step, $new_reward, $snr, $energy_temp, $mean_throughput"
     close $writer
     puts "Wrote to rewards.csv: $step, $rcv_temp, $energy_temp"
     after 500
 
-    #########################################################
+    
     #########################################################
     # ACCESSING TO AMUSE INSTRUCTION - MODIFY THE FILE PATH #
     #########################################################
-    # This block expects actions.csv in one of these locations (in this order):
-    #   ./actions.csv
-    #   ./AMUSE/actions.csv
-    #   ~/AMUSE/actions.csv
-    # The supported formats are:
-    #   Legacy: step, modulation, power
-    #   New   : step, action_idx, mod_idx, pow_idx, pwr_value
-    # In addition modulation can be either an index (0,1,2...) or a string ("QPSK").
-    #
-    # The code below parses the CSV robustly and applies modulation and power
-    # to the phy objects (tries multiple setter variants via catch to avoid errors).
-    #
-   # set candidate_paths [list "./actions.csv" "./AMUSE/actions.csv" "~/AMUSE/actions.csv"]
-    #set data ""
-
-   # foreach p $candidate_paths {
-    #    if {[file exists $p]} {
-    #        set fh [open $p r]
-    #        set content [string trim [read $fh]]
-   #         close $fh
-   #         if { $content ne "" } {
-   #             set data $content
-   #             break
-   #         }
-   #     }
-   # }
+    
     set fh [open "~/AMUSE/actions.csv" r]
     set data [string trim [read $fh]]
     close $fh
@@ -564,10 +536,7 @@ puts "---------------------------------------------------------------------"
 
         # trim each part
         set np [llength $parts]
-        #for {set i 0} {$i < $np} {incr i} {
-        #    set parts($i) [string trim [lindex $parts $i]]
-        #}
-        
+              
 
         # default values
         set mod_str ""
@@ -577,23 +546,12 @@ puts "---------------------------------------------------------------------"
         set pow_idx ""
 
         if {$np >= 5} {
-            # expected new format: step, action_idx, mod_idx, pow_idx, pwr_val
+            
             set step_read [lindex $parts 0]
             set action_idx [lindex $parts 1]
             set mod_idx [lindex $parts 2]
             set pow_idx [lindex $parts 3]
             set pwr_val [lindex $parts 4]
-        } elseif {$np >= 3} {
-            # legacy: step, modulation, power
-            set step_read [lindex $parts 0]
-            set mod_field [lindex $parts 1]
-            set pwr_val [lindex $parts 2]
-            # determine if mod_field is index or string
-            if {[string is integer -strict $mod_field]} {
-                set mod_idx $mod_field
-            } else {
-                set mod_str $mod_field
-            }
         } else {
             puts "TCL: actions.csv has unexpected format: $data"
         }
