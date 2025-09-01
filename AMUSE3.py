@@ -7,26 +7,26 @@ import time
 #from matplotlib import pyplot as plt
 
 # Configurazione
-n_max_steps = 50
+n_max_steps = 100
 n_max_episodes = 2
 
 # Definizione modulazioni e livelli potenza
-MODS = ["BPSK", "8PSK", "16PSK"]    #
-POWERS = [136, 156, 176]               # dB re μPa @ 1 m 
+modulations = ["BPSK", "8PSK", "16PSK"]    #
+powers = [136, 156, 176]               # dB re μPa @ 1 m 
 
 # Costruzione azioni congiunte (index -> (mod_idx, pow_idx))
-ACTIONS = []
-for mi in range(len(MODS)):
-    for pi in range(len(POWERS)):
-        ACTIONS.append((mi, pi))
-NUM_ACTIONS = len(ACTIONS)
+actions = []
+for mi in range(len(modulations)):
+    for pi in range(len(powers)):
+        actions.append((mi, pi))
+num_actions = len(actions)
 
 # Parametri UCB1
 exploration_param = 2.0
 
 # Statistiche UCB1
-action_counts = [0] * NUM_ACTIONS
-total_rewards = [0.0] * NUM_ACTIONS
+action_counts = [0] * num_actions
+total_rewards = [0.0] * num_actions
 
 # Logging globale episodi
 total_mean_throughput = []
@@ -35,13 +35,13 @@ total_cumulative_reward = []
 # Funzione di selezione UCB1
 def select_action():
     # se esiste un'azione non esplorata, sceglila
-    for a in range(NUM_ACTIONS):
+    for a in range(num_actions):
         if action_counts[a] == 0:
             return a
     total_counts = sum(action_counts)
     ucb_values = [
         (total_rewards[a] / action_counts[a]) + exploration_param * math.sqrt(math.log(total_counts) / action_counts[a])
-        for a in range(NUM_ACTIONS)
+        for a in range(num_actions)
     ]
     return ucb_values.index(max(ucb_values))
 
@@ -61,9 +61,9 @@ while n_episode < n_max_episodes:
 
     while n_step < n_max_steps:
         action = select_action()
-        mod_idx, pow_idx = ACTIONS[action]
-        mod = MODS[mod_idx]
-        pwr = POWERS[pow_idx]
+        mod_idx, pow_idx = actions[action]
+        mod = modulations[mod_idx]
+        pwr = powers[pow_idx]
 
         # Scrivo azione in actions.csv: step, action_idx, mod_idx, pow_idx, power_value
         with open('actions.csv', 'w', newline='') as actions_file:
@@ -111,6 +111,7 @@ while n_episode < n_max_episodes:
 
         # sincronizzazione come prima
         while True:
+            #time.sleep(0.8)
             with open('synchronization.csv') as synchro_check:
                 synchro_reader_check = csv.reader(synchro_check)
                 row = next(synchro_reader_check)
@@ -125,7 +126,7 @@ while n_episode < n_max_episodes:
                             csv.writer(done_file).writerow([1])
                         time.sleep(3)
                     break
-            time.sleep(1)
+            time.sleep(0.8)
         #acquisizione dati per plotting
         reward_per_step.append(reward)
         total_energy.append(energy_consumed)

@@ -69,7 +69,7 @@ set opt(starttime)          1
 set opt(stoptime)           6002
 #interrupttime 120 instead of 60 so that the simulation ends after 50/100 timesteps
 # according to the AMUSE3 script num_max_steps
-set opt(interrupttime)      120 
+set opt(interrupttime)      60 
 set opt(txduration)         [expr $opt(stoptime) - $opt(starttime)]
 set opt(seedcbr)            0
 set opt(memory_slots)       10000
@@ -474,8 +474,10 @@ puts "---------------------------------------------------------------------"
     set data_synchro [split $data_synchro ","]
     set step [lindex $data_synchro 0]
     set rcv [lindex $data_synchro 1]
+    set total_energy [lindex $data_synchro 2]
     puts "step: $step"
     puts "rcv: $rcv"
+    puts "total_energy: $total_energy"
     
     #############################
     # CALCULATE THE IMPROVEMENT #
@@ -485,15 +487,26 @@ puts "---------------------------------------------------------------------"
     puts "rcv_temp: $rcv_temp"
 
      # AGGIUNGERE CALCOLO ENERGIA CONSUMATA
-    set energy_consumed 0.0
+    set sum_energy_consumed 0.0
     for {set i 0} {$i < $opt(nn)} {incr i}  {
         set energy_consumed_node [$phy($i) getConsumedEnergyTx]
-        set energy_consumed [expr $energy_consumed + $energy_consumed_node]
+        set sum_energy_consumed [expr $sum_energy_consumed + $energy_consumed_node]
     }
-    puts "Energy Consumed: $energy_consumed"
+
+    set energy_temp [expr $sum_energy_consumed - $total_energy]
+    set total_energy $sum_energy_consumed
+    puts "Energy Consumed this step: $energy_temp"
+    
+    #puts "Energy Consumed: $sum_energy_consumed"
     set min_energy 136
     set max_energy 176
-    set normalized_energy [expr (10*log10($energy_consumed)-$min_energy)/($max_energy-$min_energy)]
+   # if {$energy_temp <= 0} {
+   #     set normalized_energy 0.0
+   # } else {
+   #    set normalized_energy [expr (10*log10($energy_temp)-$min_energy)/($max_energy-$min_energy)]
+   # }
+   set normalized_energy [expr ($energy_temp -$min_energy)/($max_energy-$min_energy)]
+    
     
     set alpha 0.5
     set new_reward [expr -(($alpha)*$per_temp) -((1-$alpha) * $normalized_energy)]
@@ -502,9 +515,9 @@ puts "---------------------------------------------------------------------"
     # WRITING TO AMUSE - MODIFY THE FILE PATH #
     ###########################################
     set writer [open "~/AMUSE/rewards.csv" w+]
-    puts $writer "$step, $new_reward, $snr, $energy_consumed"
+    puts $writer "$step, $new_reward, $snr, $energy_temp"
     close $writer
-    puts "Wrote to rewards.csv: $step, $rcv_temp"
+    puts "Wrote to rewards.csv: $step, $rcv_temp, $energy_temp"
     after 500
 
     #########################################################
@@ -645,7 +658,7 @@ puts "---------------------------------------------------------------------"
 
     puts "Incrementing step: step = $step"
     set writer [open "~/AMUSE/synchronization.csv" w+]
-    puts $writer "$step, $rcv"
+    puts $writer "$step, $rcv, $total_energy"
     close $writer
     puts "wrote step: $step, rcv: $rcv to synchronization.csv"
     after 500
