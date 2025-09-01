@@ -3,12 +3,13 @@ import math
 import statistics
 import csv
 import time
+#import wandb
 #import matplotlib.pyplot as plt
 #from matplotlib import pyplot as plt
 
 # Configurazione
 n_max_steps = 100
-n_max_episodes = 2
+n_max_episodes = 15
 
 # Definizione modulazioni e livelli potenza
 modulations = ["BPSK", "8PSK", "16PSK"]    #
@@ -28,6 +29,10 @@ exploration_param = 2.0
 action_counts = [0] * num_actions
 total_rewards = [0.0] * num_actions
 
+run_name = "UCB1_3_mod_3_pow"
+project_name = "AMUSE"
+entity_name = "your_entity"  # replace with your wandb entity
+#wandb.init(name=run_name, project=project_name, tags=["static"], entity=entity_name, reinit=True)
 # Logging globale episodi
 total_mean_throughput = []
 total_cumulative_reward = []
@@ -54,10 +59,13 @@ while n_episode < n_max_episodes:
     internal_step = 1
     n_step = 1
     cumulative_reward = 0.0
-    throughput_list = []
+    throughput_list = [] #non utilizzare per throughput, contiene nuova reward
 
     reward_per_step =[]
     total_energy = []
+    mean_throughput_per_step = []
+    modulation_per_step = []
+    power_per_step = []
 
     while n_step < n_max_steps:
         action = select_action()
@@ -79,7 +87,8 @@ while n_episode < n_max_episodes:
                 row = next(rewards_reader_check)
                 step = int(row[0])
                 reward = float(row[1])
-                energy_consumed = float(row[3])
+                energy_consumed_per_step = float(row[3])
+                mean_throughput = float(row[4])
                 print(f"[INFO] read rewards.csv: step={step}, reward={reward}")
 
             if step == internal_step:
@@ -104,6 +113,10 @@ while n_episode < n_max_episodes:
         # Aggiorno UCB counters
         action_counts[action] += 1
         total_rewards[action] += reward
+        #wandb.log({"reward": reward},commit=False)
+        #wandb.log({"modulation": mod_idx},commit=False)
+        #wandb.log({"power": pwr}, commit= True)
+        
         
 
         internal_step += 1
@@ -129,7 +142,10 @@ while n_episode < n_max_episodes:
             time.sleep(0.8)
         #acquisizione dati per plotting
         reward_per_step.append(reward)
-        total_energy.append(energy_consumed)
+        total_energy.append(energy_consumed_per_step)
+        mean_throughput_per_step.append(mean_throughput)
+        modulation_per_step.append(mod_idx)
+        power_per_step.append(pwr)
     # fine episodio
     #plot reward
     with open('reward_per_step.csv',"a",newline='') as reward_file:
@@ -138,6 +154,15 @@ while n_episode < n_max_episodes:
     with open('energy_per_step.csv',"a",newline='') as energy_file:
         energy_writer = csv.writer(energy_file)
         energy_writer.writerow(total_energy)
+    with open("throughput_per_step.csv","a",newline='') as throughput_file:
+        throughput_writer = csv.writer(throughput_file)
+        throughput_writer.writerow(mean_throughput_per_step)
+    with open("modulation_per_step.csv","a",newline='') as mod_file:
+        mod_writer = csv.writer(mod_file)
+        mod_writer.writerow(modulation_per_step)
+    with open("power_per_step.csv","a",newline='') as power_file:
+        power_writer = csv.writer(power_file)
+        power_writer.writerow(power_per_step)
     '''
     plt.plot(range(1, n_max_steps), reward_per_step, marker='o')
     plt.title('Reward per Step')
@@ -151,7 +176,8 @@ while n_episode < n_max_episodes:
     total_mean_throughput.append(mean_throughput)
 
     print(f"[END] Episode {n_episode} cumulative_reward={cumulative_reward}, mean_throughput={mean_throughput}")
-
+    #wandb.log({"mean throughput": mean_throughput, "episode": n_episode}, commit=False)
+    #wandb.log({"cumulative reward": cumulative_reward, "episode": n_episode}, commit=True)
     n_episode += 1
 
 print(f"[FINAL] Total cumulative reward: {total_cumulative_reward}")
