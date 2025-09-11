@@ -600,11 +600,7 @@ puts "---------------------------------------------------------------------"
                 catch { $phy($pid) modulation $mod_str } err_mod
             }
             if {$pwr_val ne ""} {
-                # try several possible setters, ignore errors
-                catch { $phy($pid) setTxPower $pwr_val } err1
-                catch { $phy($pid) set txPower $pwr_val } err2
-                catch { $phy($pid) txPower $pwr_val } err3
-                catch { $phy($pid) set tx_power $pwr_val } err4
+                catch { $phy($pid) setTxPower $pwr_val } err_pwr
             }
         }
     }
@@ -648,4 +644,5 @@ while 1 {
     puts "breaking from while loop"
     break}
     after 100
+
 }
