@@ -1,4 +1,5 @@
 # Underwater research project
+Based on the work of https://github.com/andreapanebianco/AMUSE
 ## Mean reward
 <img width="2289" height="811" alt="mean_reward" src="https://github.com/user-attachments/assets/ce21dd96-bb3d-4363-86d0-eddce65ac5b1" /> 
 
